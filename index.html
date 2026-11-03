@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>공격 방식 분류 시스템</title>
-    <!-- 1. TensorFlow.js 및 Teachable Machine 라이브러리 로드 -->
+    <!-- TensorFlow.js 및 Teachable Machine 라이브러리 -->
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
     
@@ -45,33 +45,26 @@
     <h1>공격 방식 분류 시스템</h1>
 
     <div>
-        <!-- 파일 업로드 영역 -->
         <div class="upload-box" onclick="document.getElementById('image-input').click()">
             <span>📁 클릭하여 이미지 파일(JPG, PNG)을 선택하세요</span>
             <input type="file" id="image-input" accept="image/*" style="display: none;" onchange="handleImageUpload(event)">
         </div>
 
-        <!-- 모델 상태 메시지 -->
         <div id="status-message">모델 로딩 준비 중...</div>
 
-        <!-- 이미지 미리보기 -->
         <div>
             <img id="image-preview" alt="분류할 이미지">
         </div>
 
-        <!-- 결과 출력 영역 -->
         <div id="label-container"></div>
     </div>
 
     <script>
-        // ⚠️ Teachable Machine 모델 경로 설정
-        // 동일 폴더 내 my_model 폴더가 있다면 "./my_model/"
-        // 또는 온라인 URL ("https://teachablemachine.withgoogle.com/models/YOUR_ID/")
-        const URL = "./my_model/";
+        // 깃허브 폴더 이름에 맞춰 ./model/ 로 경로 수정
+        const URL = "./model/";
 
         let model, labelContainer, maxPredictions;
 
-        // 모델 초기화
         async function init() {
             const statusEl = document.getElementById("status-message");
             try {
@@ -94,13 +87,12 @@
             }
         }
 
-        // 이미지 업로드 및 예측 실행
         async function handleImageUpload(event) {
             const file = event.target.files[0];
             if (!file) return;
 
             const imgElement = document.getElementById("image-preview");
-            imgElement.src = javaScriptURL = URL.createObjectURL(file);
+            imgElement.src = URL.createObjectURL(file);
             imgElement.style.display = "block";
 
             imgElement.onload = async function () {
@@ -112,7 +104,6 @@
             };
         }
 
-        // 이미지 예측 로직
         async function predict(imageElement) {
             const prediction = await model.predict(imageElement);
             for (let i = 0; i < maxPredictions; i++) {
@@ -122,7 +113,6 @@
             }
         }
 
-        // 페이지 로드 시 모델 로딩 시작
         init();
     </script>
 </body>
