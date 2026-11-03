@@ -4,148 +4,39 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>공격 방식 분류 시스템</title>
-    <!-- TensorFlow.js 및 Teachable Machine 라이브러리 -->
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.7.4/dist/tf.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8.4-alpha2/dist/teachablemachine-image.min.js"></script>
+    <!-- 1. TensorFlow.js 및 Teachable Machine 라이브러리 로드 -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
+    
     <style>
-        :root {
-            --bg-color: #0d0202;
-            --panel-bg: #1a0505;
-            --border-color: #4a0d0d;
-            --primary-red: #8b0000;
-            --bright-red: #ff2a2a;
-            --text-color: #e0e0e0;
-            --text-dim: #a08080;
-        }
-
         body {
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-height: 100vh;
+            font-family: Arial, sans-serif;
+            margin: 40px auto;
+            max-width: 600px;
+            text-align: center;
         }
-
-        h1 {
-            color: var(--bright-red);
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            text-shadow: 0 0 10px rgba(255, 42, 42, 0.5);
+        .upload-box {
+            border: 2px dashed #ccc;
+            padding: 20px;
+            cursor: pointer;
             margin-bottom: 20px;
         }
-
-        .container {
-            background-color: var(--panel-bg);
-            border: 2px solid var(--border-color);
-            border-radius: 12px;
-            box-shadow: 0 0 20px rgba(139, 0, 0, 0.3);
-            padding: 24px;
-            max-width: 800px;
-            width: 100%;
-            box-sizing: border-box;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 20px;
-        }
-
-        .upload-area {
-            width: 100%;
-            border: 2px dashed var(--primary-red);
-            border-radius: 8px;
-            padding: 20px;
-            text-align: center;
-            box-sizing: border-box;
-            background-color: rgba(0, 0, 0, 0.3);
-            cursor: pointer;
-            transition: border-color 0.2s, background-color 0.2s;
-        }
-
-        .upload-area:hover {
-            border-color: var(--bright-red);
-            background-color: rgba(139, 0, 0, 0.1);
-        }
-
-        input[type="file"] {
-            display: none;
-        }
-
-        .upload-label {
-            color: var(--text-color);
-            font-weight: bold;
-            cursor: pointer;
-            display: block;
-        }
-
-        #image-container {
-            width: 224px;
-            height: 224px;
-            border: 2px solid var(--primary-red);
-            border-radius: 8px;
-            overflow: hidden;
-            background-color: #000;
-            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.8);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-
-        #uploaded-image {
+        #image-preview {
             max-width: 100%;
-            max-height: 100%;
-            object-fit: contain;
+            max-height: 300px;
             display: none;
+            margin: 10px auto;
         }
-
-        #label-container {
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        .prediction-box {
-            background-color: rgba(0, 0, 0, 0.5);
-            border: 1px solid var(--border-color);
-            padding: 10px 15px;
-            border-radius: 6px;
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-        }
-
-        .label-text {
-            display: flex;
-            justify-content: space-between;
-            font-size: 14px;
+        #status-message {
+            margin: 10px 0;
             font-weight: bold;
+            color: #555;
         }
-
-        .bar-background {
-            background-color: #2a0000;
-            height: 12px;
-            border-radius: 6px;
-            overflow: hidden;
-            border: 1px solid var(--border-color);
-        }
-
-        .bar-fill {
-            background: linear-gradient(90deg, var(--primary-red), var(--bright-red));
-            height: 100%;
-            width: 0%;
-            transition: width 0.3s ease;
-            box-shadow: 0 0 8px rgba(255, 42, 42, 0.8);
-        }
-
-        .status {
-            color: var(--text-dim);
-            font-size: 14px;
-            font-style: italic;
-            text-align: center;
+        #label-container div {
+            margin: 5px 0;
+            padding: 8px;
+            background-color: #f4f4f4;
+            border-radius: 4px;
         }
     </style>
 </head>
@@ -153,100 +44,86 @@
 
     <h1>공격 방식 분류 시스템</h1>
 
-    <div class="container">
-        <div class="upload-area" onclick="document.getElementById('image-input').click()">
-            <span class="upload-label">📁 클릭하여 이미지 파일(JPG, PNG)을 선택하세요</span>
-            <input type="file" id="image-input" accept="image/png, image/jpeg, image/jpg" onchange="handleImageUpload(event)">
+    <div>
+        <!-- 파일 업로드 영역 -->
+        <div class="upload-box" onclick="document.getElementById('image-input').click()">
+            <span>📁 클릭하여 이미지 파일(JPG, PNG)을 선택하세요</span>
+            <input type="file" id="image-input" accept="image/*" style="display: none;" onchange="handleImageUpload(event)">
         </div>
 
-        <div id="status" class="status">모델 로딩을 준비 중입니다...</div>
+        <!-- 모델 상태 메시지 -->
+        <div id="status-message">모델 로딩 준비 중...</div>
 
-        <div id="image-container">
-            <img id="uploaded-image" alt="분류할 이미지">
+        <!-- 이미지 미리보기 -->
+        <div>
+            <img id="image-preview" alt="분류할 이미지">
         </div>
 
+        <!-- 결과 출력 영역 -->
         <div id="label-container"></div>
     </div>
 
-    <script type="text/javascript">
-        // GitHub Pages 및 로컬 실행 경로 대응
-        const MODEL_URL = "./model/";
+    <script>
+        // ⚠️ Teachable Machine 모델 경로 설정
+        // 동일 폴더 내 my_model 폴더가 있다면 "./my_model/"
+        // 또는 온라인 URL ("https://teachablemachine.withgoogle.com/models/YOUR_ID/")
+        const URL = "./my_model/";
 
-        let model, maxPredictions;
+        let model, labelContainer, maxPredictions;
 
-        async function loadModel() {
-            const statusEl = document.getElementById("status");
-            statusEl.innerText = "모델을 로딩 중입니다...";
-
-            const modelPath = MODEL_URL + "model.json";
-            const metadataPath = MODEL_URL + "metadata.json";
-
+        // 모델 초기화
+        async function init() {
+            const statusEl = document.getElementById("status-message");
             try {
-                model = await tmImage.load(modelPath, metadataPath);
+                const modelURL = URL + "model.json";
+                const metadataURL = URL + "metadata.json";
+
+                statusEl.innerText = "모델 불러오는 중...";
+                model = await tmImage.load(modelURL, metadataURL);
                 maxPredictions = model.getTotalClasses();
-                statusEl.innerText = "모델 로드 완료! 이미지를 업로드해 주세요.";
+
+                labelContainer = document.getElementById("label-container");
+                labelContainer.innerHTML = "";
+                for (let i = 0; i < maxPredictions; i++) {
+                    labelContainer.appendChild(document.createElement("div"));
+                }
+                statusEl.innerText = "모델 로드 완료! 이미지를 업로드하세요.";
             } catch (error) {
-                console.error("모델 로드 상세 오류:", error);
-                statusEl.innerText = "❌ 모델 로드 실패: 브라우저 콘솔(F12)을 확인하거나 잠시 후 강력 새로고침(Ctrl+F5)을 시도하세요.";
+                console.error(error);
+                statusEl.innerText = "모델을 불러오지 못했습니다. 경로(URL)를 확인하세요.";
             }
         }
 
+        // 이미지 업로드 및 예측 실행
         async function handleImageUpload(event) {
             const file = event.target.files[0];
             if (!file) return;
 
-            const statusEl = document.getElementById("status");
+            const imgElement = document.getElementById("image-preview");
+            imgElement.src = javaScriptURL = URL.createObjectURL(file);
+            imgElement.style.display = "block";
 
-            // 모델이 로드되지 않았으면 다시 로드 시도
-            if (!model) {
-                statusEl.innerText = "모델 로딩 재시도 중...";
-                await loadModel();
-                if (!model) return;
-            }
-
-            const imgElement = document.getElementById("uploaded-image");
-            const reader = new FileReader();
-
-            reader.onload = function(e) {
-                imgElement.onload = async function() {
-                    statusEl.innerText = "이미지 분석 중...";
-                    await predict(imgElement);
-                    statusEl.innerText = "분석 완료!";
-                };
-
-                imgElement.src = e.target.result;
-                imgElement.style.display = "block";
+            imgElement.onload = async function () {
+                if (!model) {
+                    alert("모델이 아직 로드되지 않았습니다.");
+                    return;
+                }
+                await predict(imgElement);
             };
-
-            reader.readAsDataURL(file);
         }
 
+        // 이미지 예측 로직
         async function predict(imageElement) {
             const prediction = await model.predict(imageElement);
-            const labelContainer = document.getElementById("label-container");
-            labelContainer.innerHTML = "";
-
             for (let i = 0; i < maxPredictions; i++) {
-                const className = prediction[i].className.trim() || `Class ${i + 1}`;
-                const probability = (prediction[i].probability * 100).toFixed(1);
-
-                const predBox = document.createElement("div");
-                predBox.className = "prediction-box";
-                predBox.innerHTML = `
-                    <div class="label-text">
-                        <span>${className}</span>
-                        <span>${probability}%</span>
-                    </div>
-                    <div class="bar-background">
-                        <div class="bar-fill" style="width: ${probability}%;"></div>
-                    </div>
-                `;
-                labelContainer.appendChild(predBox);
+                const classPrediction =
+                    prediction[i].className + ": " + (prediction[i].probability * 100).toFixed(2) + "%";
+                labelContainer.childNodes[i].innerHTML = classPrediction;
             }
         }
 
-        // DOM이 모두 준비되었을 때 모델 로드
-        document.addEventListener("DOMContentLoaded", loadModel);
+        // 페이지 로드 시 모델 로딩 시작
+        init();
     </script>
 </body>
 </html>
