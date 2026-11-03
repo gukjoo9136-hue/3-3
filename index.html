@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>공격 방식 분류 시스템 (이미지 업로드)</title>
+    <!-- TensorFlow.js 및 Teachable Machine 라이브러리 로드 -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.7.4/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8.4-alpha2/dist/teachablemachine-image.min.js"></script>
+    <style>
+        :root {
+            --bg-color: #0d0202;
+            --panel-bg: #1a0505;
+            --border-color: #4a0d0d;
+            --primary-red: #8b0000;
+            --bright-red: #ff2a2a;
+            --text-color: #e0e0e0;
+            --text-dim: #a08080;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        h1 {
+            color: var(--bright-red);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 0 0 10px rgba(255, 42, 42, 0.5);
+            margin-bottom: 20px;
+        }
+
+        .container {
+            background-color: var(--panel-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            box-shadow: 0 0 20px rgba(139, 0, 0, 0.3);
+            padding: 24px;
+            max-width: 800px;
+            width: 100%;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .upload-area {
+            width: 100%;
+            border: 2px dashed var(--primary-red);
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            box-sizing: border-box;
+            background-color: rgba(0, 0, 0, 0.3);
+            cursor: pointer;
+            transition: border-color 0.2s, background-color 0.2s;
+        }
+
+        .upload-area:hover {
+            border-color: var(--bright-red);
+            background-color: rgba(139, 0, 0, 0.1);
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .upload-label {
+            color: var(--text-color);
+            font-weight: bold;
+            cursor: pointer;
+            display: block;
+        }
+
+        #image-container {
+            width: 224px;
+            height: 224px;
+            border: 2px solid var(--primary-red);
+            border-radius: 8px;
+            overflow: hidden;
+            background-color: #000;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #uploaded-image {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            display: none;
+        }
+
+        #label-container {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .prediction-box {
+            background-color: rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--border-color);
+            padding: 10px 15px;
+            border-radius: 6px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .label-text {
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .bar-background {
+            background-color: #2a0000;
+            height: 12px;
+            border-radius: 6px;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+        }
+
+        .bar-fill {
+            background: linear-gradient(90deg, var(--primary-red), var(--bright-red));
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s ease;
+            box-shadow: 0 0 8px rgba(255, 42, 42, 0.8);
+        }
+
+        .status {
+            color: var(--text-dim);
+            font-size: 14px;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>공격 방식 분류 시스템</h1>
+
+    <div class="container">
+        <!-- 이미지 업로드 영역 (JPG, PNG 지원) -->
+        <div class="upload-area" onclick="document.getElementById('image-input').click()">
+            <label class="upload-label">📁 클릭하여 이미지 파일(JPG, PNG)을 업로드하세요</label>
+            <input type="file" id="image-input" accept="image/png, image/jpeg, image/jpg" onchange="handleImageUpload(event)">
+        </div>
+
+        <div id="status" class="status">모델 로딩 준비 완료. 이미지를 업로드해주세요.</div>
+
+        <div id="image-container">
+            <img id="uploaded-image" alt="분류할 이미지">
+        </div>
+
+        <div id="label-container"></div>
+    </div>
+
+    <script type="text/javascript">
+        const URL = "./";
+        let model, maxPredictions;
+
+        // 페이지 진입 시 AI 모델 자동 로드
+        async function loadModel() {
+            const statusEl = document.getElementById("status");
+            statusEl.innerText = "모델을 로딩 중입니다...";
+
+            const modelURL = URL + "model.json";
+            const metadataURL = URL + "metadata.json";
+
+            try {
+                model = await tmImage.load(modelURL, metadataURL);
+                maxPredictions = model.getTotalClasses();
+                statusEl.innerText = "모델 로드 완료! 이미지(JPG, PNG)를 선택하세요.";
+            } catch (error) {
+                console.error(error);
+                statusEl.innerText = "오류 발생: model.json 또는 metadata.json 파일을 찾을 수 없습니다.";
+            }
+        }
+
+        // 이미지 업로드 및 분석 처리 함수
+        async function handleImageUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            if (!model) {
+                await loadModel();
+                if (!model) return;
+            }
+
+            const imgElement = document.getElementById("uploaded-image");
+            const statusEl = document.getElementById("status");
+
+            const reader = new FileReader();
+
+            reader.onload = function(e) {
+                // 이미지가 완전히 로드되는 시점에 감지 함수를 실행하도록 순서 보장
+                imgElement.onload = async function() {
+                    statusEl.innerText = "이미지 분석 중...";
+                    await predict(imgElement);
+                    statusEl.innerText = "분석 완료!";
+                };
+
+                // 이미지 소스 부여 및 화면 표시
+                imgElement.src = e.target.result;
+                imgElement.style.display = "block";
+            };
+
+            reader.readAsDataURL(file);
+        }
+
+        // 이미지 예측 및 결과 바 출력 함수
+        async function predict(imageElement) {
+            const prediction = await model.predict(imageElement);
+            const labelContainer = document.getElementById("label-container");
+            labelContainer.innerHTML = "";
+
+            for (let i = 0; i < maxPredictions; i++) {
+                const className = prediction[i].className.trim() || `Class ${i + 1}`;
+                const probability = (prediction[i].probability * 100).toFixed(1);
+
+                const predBox = document.createElement("div");
+                predBox.className = "prediction-box";
+
+                const labelText = document.createElement("div");
+                labelText.className = "label-text";
+                labelText.innerHTML = `<span>${className}</span><span>${probability}%</span>`;
+
+                const barBg = document.createElement("div");
+                barBg.className = "bar-background";
+
+                const barFill = document.createElement("div");
+                barFill.className = "bar-fill";
+                barFill.style.width = `${probability}%`;
+
+                barBg.appendChild(barFill);
+                predBox.appendChild(labelText);
+                predBox.appendChild(barBg);
+
+                labelContainer.appendChild(predBox);
+            }
+        }
+
+        window.onload = loadModel;
+    </script>
+</body>
+</html>
