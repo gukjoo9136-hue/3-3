@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>공격 방식 분류 시스템</title>
-    <!-- TensorFlow.js 및 Teachable Machine 라이브러리 -->
+    <!-- TensorFlow.js 및 Teachable Machine 라이브러리 로드 -->
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.7.4/dist/tf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8.4-alpha2/dist/teachablemachine-image.min.js"></script>
     <style>
@@ -21,7 +21,7 @@
         body {
             background-color: var(--bg-color);
             color: var(--text-color);
-            font-family: sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
             padding: 20px;
             display: flex;
@@ -153,6 +153,7 @@
     <h1>공격 방식 분류 시스템</h1>
 
     <div class="container">
+        <!-- 파일 업로드 영역 (JPG, PNG 지정) -->
         <div class="upload-area" onclick="document.getElementById('image-input').click()">
             <span class="upload-label">📁 클릭하여 이미지 파일(JPG, PNG)을 선택하세요</span>
             <input type="file" id="image-input" accept="image/png, image/jpeg, image/jpg" onchange="handleImageUpload(event)">
@@ -168,12 +169,12 @@
     </div>
 
     <script type="text/javascript">
-        // 📌 model 폴더 내부를 바라보도록 경로 수정
+        // 📌 저장소 내 model 폴더 경로 정확히 지정
         const MODEL_URL = "./model/";
 
         let model, maxPredictions;
 
-        // AI 모델 초기화
+        // AI 모델 로드 함수
         async function loadModel() {
             const statusEl = document.getElementById("status");
             statusEl.innerText = "모델을 로딩 중입니다...";
@@ -187,11 +188,11 @@
                 statusEl.innerText = "모델 로드 완료! 이미지를 업로드해 주세요.";
             } catch (error) {
                 console.error("모델 로드 실패:", error);
-                statusEl.innerText = "❌ 모델 로드 실패: model 폴더 안에 model.json, metadata.json, weights.bin 파일이 다 있는지 확인하세요.";
+                statusEl.innerText = "❌ 오류 발생: model 폴더 안의 파일명(model.json, metadata.json, weights.bin) 대소문자를 확인하세요.";
             }
         }
 
-        // 이미지 업로드 처리
+        // 이미지 파일 선택 처리 함수
         async function handleImageUpload(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -199,7 +200,7 @@
             const statusEl = document.getElementById("status");
 
             if (!model) {
-                statusEl.innerText = "모델을 먼저 로딩하는 중입니다...";
+                statusEl.innerText = "모델을 로딩하는 중입니다...";
                 await loadModel();
                 if (!model) return;
             }
@@ -208,7 +209,7 @@
             const reader = new FileReader();
 
             reader.onload = function(e) {
-                // 이미지 로드가 완료된 시점에 감지 실행
+                // 이미지가 완전히 로드되었을 때 예측 실행
                 imgElement.onload = async function() {
                     statusEl.innerText = "이미지 분석 중...";
                     await predict(imgElement);
@@ -222,7 +223,7 @@
             reader.readAsDataURL(file);
         }
 
-        // 예측 결과 출력
+        // 예측 및 결과 시각화 함수
         async function predict(imageElement) {
             const prediction = await model.predict(imageElement);
             const labelContainer = document.getElementById("label-container");
@@ -247,7 +248,7 @@
             }
         }
 
-        // 페이지 진입 시 모델 자동 실행
+        // 페이지 들어올 때 모델 자동 로드
         window.onload = loadModel;
     </script>
 </body>
